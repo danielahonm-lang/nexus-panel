@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel de voluntarios · Nexus Ciencias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+/* Panel operativo para celulares: alto contraste, botones grandes. Azul = entrada y salida y sorteos. */
+:root{
+  --bg:#eef2f7;--card:#ffffff;--ink:#0f172a;--muted:#55607a;--line:#d6deea;
+  --nx:#1d4ed8;--nx2:#0b2a6f;--er:#0e7490;--er2:#062a33;
+  --ok:#15803d;--okbg:#dcfce7;--warn:#a16207;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;
+  --acc:var(--nx);--top:var(--nx2);
+  color-scheme:light;
+}
+body.er{--acc:var(--er);--top:var(--er2)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+header{position:sticky;top:0;z-index:5;background:var(--top);color:#fff;padding:10px max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left));display:flex;align-items:center;gap:12px}
+header h1{font-size:17px;margin:0;font-weight:800;flex:1;min-width:0;line-height:1.2}
+header small{display:block;font-weight:500;font-size:12px;opacity:.85;letter-spacing:.02em}
+header .back{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:10px;min-height:40px;padding:0 12px;font:inherit;font-weight:700;cursor:pointer}
+main{max-width:760px;margin:0 auto;padding:14px max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:12px}
+h2{font-size:21px;margin:0;line-height:1.2}
+h3{font-size:15px;margin:0;font-weight:800}
+p{margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.btn{appearance:none;border:0;border-radius:12px;background:var(--acc);color:#fff;font:inherit;font-weight:700;padding:10px 16px;cursor:pointer;min-height:48px;text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.ok{background:var(--ok)} .btn.bad{background:var(--bad)} .btn.warn{background:var(--warn)}
+.btn.sm{min-height:38px;padding:6px 12px;font-size:14px}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:focus-visible,input:focus-visible,select:focus-visible,.st:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+input,select,textarea{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;width:100%;background:#fff;min-height:48px;color:var(--ink)}
+.fld{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted);font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>.grow{flex:1 1 180px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.res{border-radius:16px;padding:16px;border:2px solid;display:flex;flex-direction:column;gap:6px}
+.res.ok{background:var(--okbg);border-color:var(--ok)}
+.res.warn{background:var(--warnbg);border-color:var(--warn)}
+.res.error{background:var(--badbg);border-color:var(--bad)}
+.res .who{font-size:22px;font-weight:800;line-height:1.2}
+.res ul{margin:2px 0 0;padding-left:20px}
+.res .big{font-size:20px;font-weight:800;padding:8px 12px;border-radius:10px;background:#fff;align-self:flex-start}
+.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.stat b{display:block;font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:13px;color:var(--muted)}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.li{display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);min-height:52px;background:#fff;width:100%;text-align:left;font:inherit;color:inherit}
+.li:first-child{border-top:0}
+button.li{cursor:pointer;border:0;border-top:1px solid var(--line);border-radius:0}
+button.li:first-child{border-top:0}
+button.li:disabled{opacity:.6;cursor:default}
+.li input[type=checkbox]{width:24px;height:24px;min-height:0;flex:none;accent-color:var(--acc)}
+.li .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#e2e8f0;color:#334155;white-space:nowrap}
+.chip.ok{background:var(--okbg);color:var(--ok)} .chip.warn{background:var(--warnbg);color:var(--warn)} .chip.bad{background:var(--badbg);color:var(--bad)} .chip.acc{background:#dbeafe;color:#1e40af}
+body.er .chip.acc{background:#cffafe;color:#155e75}
+.muted{color:var(--muted);font-size:14px}
+.video{position:relative;border-radius:14px;overflow:hidden;background:#000}
+.video video{width:100%;display:block;max-height:52vh;object-fit:cover}
+.video .frame{position:absolute;left:18%;right:18%;top:14%;bottom:14%;border:3px solid rgba(255,255,255,.9);border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
+.timer{font-size:64px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;line-height:1;letter-spacing:-1px}
+.timer.over{color:var(--bad)}
+.stations{display:flex;flex-direction:column;gap:8px}
+.stations h3{margin:10px 0 2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.st{display:grid;grid-template-columns:14px 1fr;column-gap:12px;align-items:center;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--line);background:#fff;font:inherit;color:inherit;cursor:pointer}
+.st i{width:12px;height:12px;border-radius:50%;background:var(--nx);grid-row:span 2}
+.st.er i{background:var(--er)}
+.st b{font-size:16px} .st span{font-size:13px;color:var(--muted)}
+.loading{color:var(--muted);text-align:center;padding:18px}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+.t td,.t th{padding:8px 6px;border-top:1px solid var(--line);text-align:left;vertical-align:top}
+.t th{font-size:12px;color:var(--muted);font-weight:700;border-top:0}
+.t td.n{text-align:right;font-variant-numeric:tabular-nums}
+.ronda{display:grid;grid-template-columns:56px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--line)}
+.ronda:first-child{border-top:0}
+.ronda b{font-variant-numeric:tabular-nums}
+.tot{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:14px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;min-height:44px}
+.pill input{width:18px;height:18px;min-height:0;accent-color:var(--acc)}
+.banner{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:12px;padding:8px 12px;font-size:14px;font-weight:600}
+.hidden{display:none!important}
+.modo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modo button{min-height:64px;font-size:20px;font-weight:800;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;font-family:inherit}
+.modo button[aria-pressed=true].ent{background:var(--ok);border-color:var(--ok);color:#fff}
+.modo button[aria-pressed=true].sal{background:var(--bad);border-color:var(--bad);color:#fff}
+.rueda{position:relative;width:min(92vw,520px);margin:0 auto}
+.rueda canvas{width:100%;height:auto;display:block;border-radius:50%;box-shadow:0 10px 30px rgba(11,31,92,.35)}
+.rueda .ptr{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid #f59e0b;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));z-index:2}
+.rueda .eje{position:absolute;left:50%;top:50%;width:18%;height:18%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#fff 0 55%,#0b2a6f 56%);box-shadow:0 0 0 4px #fff}
+.nombre-ruleta{text-align:center;font-size:clamp(22px,6vw,40px);font-weight:800;color:var(--nx2);min-height:1.3em;line-height:1.2;overflow-wrap:anywhere}
+.nombre-ruleta small{display:block;font-size:14px;font-weight:600;color:var(--muted)}
+.proyectar{position:fixed;inset:0;z-index:50;background:linear-gradient(160deg,#0b1f5c,#1d4ed8 60%,#0e7490);overflow:auto;padding:28px 16px 16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;border-radius:0}
+.proyectar .rueda{width:min(62vh,88vw);flex:none}
+.proyectar .grid2,.proyectar #res{width:min(640px,92vw)}
+.proyectar .nombre-ruleta{color:#fff;font-size:clamp(28px,5vw,64px)}
+.proyectar .nombre-ruleta small{color:#bfdbfe;font-size:clamp(14px,2vw,24px)}
+.proyectar .premio{color:#5eead4;font-weight:800;font-size:clamp(16px,2.6vw,30px);letter-spacing:.06em;text-transform:uppercase}
+.premio{text-align:center;font-weight:800;color:var(--er)}
+@keyframes brillo{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.gana{animation:brillo .9s ease-in-out 3}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ===================== Estado y utilidades ===================== */
+const EST = [
+  { id: 'nx-puerta', grupo: 'Entrada y salida', nombre: 'Entrada / salida (un solo puesto)', desc: 'Elige «Entrada» o «Salida», escanea el QR y se guarda la hora. Sirve para el cálculo de horas del certificado.', tema: 'nx' },
+  { id: 'nx-ingreso', grupo: 'Entrada y salida', nombre: 'Ingreso', desc: 'Escanea el QR (persona o colegio) o escribe DNI, código UNI o apellido. Entrega el fotocheck.', tema: 'nx' },
+  { id: 'nx-colegios', grupo: 'Entrada y salida', nombre: 'Ingreso · colegios', desc: 'QR o DNI del director(a): marca a los alumnos que llegaron.', tema: 'nx' },
+  { id: 'nx-salida', grupo: 'Entrada y salida', nombre: 'Salida', desc: 'Registra la hora de salida y recibe el fotocheck de quien se va antes.', tema: 'nx' },
+  { id: 'nx-resumen', grupo: 'Entrada y salida', nombre: 'Resumen del día', desc: 'Aforo, ingresos, salidas, colegios y certificados.', tema: 'nx' },
+  { id: 'sorteo', grupo: 'Sorteos', nombre: 'Sorteo con ruleta', desc: 'Ruleta con los presentes (público y alumnos de los colegios). Quien gana sale de la ruleta.', tema: 'nx' }
+];
+const S = { pin: lsGet('pin'), est: null, info: null };
+let TIMERS = [];
+function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const h = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const soles = n => 'S/ ' + Number(n || 0).toFixed(2);
+function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; }
+function ctx() { return { pin: S.pin, puesto: S.est ? S.est.nombre : '' }; }
+/* Dentro de Google se usa google.script.run. Fuera de Google (panel con cámara en vivo) se llama al
+   mismo script por su enlace /exec, que se recibe en ?api=… y se guarda en este celular. */
+const EN_GOOGLE = typeof google !== 'undefined' && google.script && google.script.run;
+const API_URL = (() => {
+  if (EN_GOOGLE) return '';
+  let u = '';
+  try { u = new URLSearchParams(location.search).get('api') || ''; } catch (e) { }
+  if (/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)) { lsSet('api', u); return u; }
+  return lsGet('api');
+})();
+function api(fn, ...a) {
+  if (EN_GOOGLE) return new Promise((ok, ko) => google.script.run.withSuccessHandler(ok).withFailureHandler(ko)[fn](...a));
+  if (!API_URL) return Promise.reject(new Error('Falta el enlace del sistema. Abre este panel desde el botón «Cámara en vivo» del panel de Google.'));
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: a }) })
+    .then(r => r.json())
+    .then(j => { if (!j.ok) throw new Error(j.error || 'Error del servidor'); return j.data; });
+}
+async function call(fn, ...a) {
+  try { return await api(fn, ctx(), ...a); }
+  catch (e) {
+    const m = e && e.message ? e.message : String(e);
+    if (/PIN incorrecto/.test(m)) { S.pin = ''; lsSet('pin', ''); render(); }
+    return { nivel: 'error', titulo: 'No se pudo completar', lineas: [m.replace(/^Exception: /, ''), 'Revisa la conexión e inténtalo de nuevo.'] };
+  }
+}
+function clearTimers() { TIMERS.forEach(t => clearInterval(t)); TIMERS = []; }
+function loading(t) { return '<div class="card loading">' + h(t || 'Consultando…') + '</div>'; }
+let AC = null;
+function beep(nivel) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(nivel === 'ok' ? 70 : [90, 60, 90]);
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.frequency.value = nivel === 'ok' ? 880 : nivel === 'warn' ? 520 : 240;
+    g.gain.value = 0.08; o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + (nivel === 'ok' ? 0.12 : 0.32));
+  } catch (e) { }
+}
+
+/* ===================== Tarjeta de resultado ===================== */
+function resCard(r, onAccion) {
+  const d = el('<div class="res ' + h(r.nivel || 'error') + '" role="status" aria-live="polite"></div>');
+  d.innerHTML = '<h2>' + h(r.titulo) + '</h2>' +
+    (r.nombre ? '<div class="who">' + h(r.nombre) + '</div>' : '') +
+    (r.detalle ? '<div class="muted">' + h(r.detalle) + '</div>' : '') +
+    ((r.lineas || []).length ? '<ul>' + r.lineas.map(l => '<li>' + h(l) + '</li>').join('') + '</ul>' : '') +
+    (r.fotocheck ? '<div class="big">Entrega 1 fotocheck</div>' : '') +
+    (r.recibir ? '<div class="big">Si se retira antes del final: recibe su fotocheck</div>' : '') +
+    (r.pines ? '<div class="big">Entrega ' + r.pines + ' pines</div>' : '');
+  if (r.opciones && r.opciones.length) {
+    const l = el('<div class="list"></div>');
+    r.opciones.forEach(o => { const b = el('<button type="button" class="li"><span class="nm">' + h(o.etiqueta) + '</span><span class="chip acc">Elegir</span></button>'); b.onclick = () => onAccion && onAccion({ entrada: o.entrada }); l.append(b); });
+    d.append(l);
+  }
+  if (r.accion) { const b = el('<button type="button" class="btn warn">' + h(r.accion.etiqueta) + '</button>'); b.onclick = () => onAccion && onAccion(r.accion); d.append(b); }
+  return d;
+}
+function statsNexus(box, r) {
+  if (!box || r == null || r.dentro == null) return;
+  box.innerHTML = '<div class="grid2"><div class="stat"><b>' + r.dentro + '</b><span>personas dentro</span></div><div class="stat"><b>' + r.disponibles + '</b><span>fotochecks libres</span></div></div>';
+}
+
+/* ===================== Escáner: cámara, foto, lector USB o teclado ===================== */
+let CAM = null;
+function stopCam() { if (CAM) { CAM.stop = true; if (CAM.stream) CAM.stream.getTracks().forEach(t => t.stop()); CAM = null; } }
+function scanner(box, opts) {
+  box.innerHTML = '<div class="card">' +
+    '<form class="row" autocomplete="off"><input class="grow" name="c" aria-label="' + h(opts.placeholder) + '" placeholder="' + h(opts.placeholder) + '" enterkeyhint="go" autocapitalize="characters"><button class="btn">Buscar</button></form>' +
+    '<div class="row"><button type="button" class="btn ghost grow" data-cam>Abrir cámara</button><label class="btn ghost grow">Foto del QR<input type="file" accept="image/*" capture="environment" class="hidden"></label></div>' +
+    '<div class="video hidden"><video playsinline muted></video><div class="frame"></div></div>' +
+    '<p class="muted hint hidden"></p></div>';
+  const form = $('form', box), inp = $('input[name=c]', box), hint = $('.hint', box), camBtn = $('[data-cam]', box);
+  let last = '', lastT = 0;
+  const fire = txt => {
+    txt = String(txt || '').trim();
+    if (!txt) return;
+    const now = Date.now();
+    if (txt === last && now - lastT < 3000) return;
+    last = txt; lastT = now; inp.value = ''; hint.classList.add('hidden');
+    opts.onCode(txt);
+  };
+  form.onsubmit = e => { e.preventDefault(); fire(inp.value); };
+  camBtn.onclick = () => { if (CAM) { stopCam(); $('.video', box).classList.add('hidden'); camBtn.textContent = 'Abrir cámara'; } else startCam(box, fire, hint, camBtn); };
+  $('input[type=file]', box).onchange = e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    hint.textContent = 'Leyendo la foto…'; hint.classList.remove('hidden');
+    decodeFile(f).then(t => { if (t) fire(t); else { hint.textContent = 'No se encontró un QR en la foto. Acércate más, evita reflejos y vuelve a intentar.'; } });
+  };
+  if (opts.focus !== false && !matchMedia('(pointer: coarse)').matches) setTimeout(() => inp.focus(), 50);
+  return { focus: () => inp.focus() };
+}
+async function startCam(box, fire, hint, camBtn) {
+  stopCam();
+  const vbox = $('.video', box), video = $('video', vbox);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    CAM = { stream: stream, stop: false };
+    video.srcObject = stream; await video.play();
+    vbox.classList.remove('hidden'); camBtn.textContent = 'Cerrar cámara';
+    const cv = document.createElement('canvas'), g = cv.getContext('2d', { willReadFrequently: true });
+    const det = ('BarcodeDetector' in window) ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+    const loop = async () => {
+      if (!CAM || CAM.stop) return;
+      if (video.readyState >= 2 && video.videoWidth) {
+        try {
+          let txt = null;
+          if (det) { const r = await det.detect(video); if (r.length) txt = r[0].rawValue; }
+          else if (window.jsQR) {
+            const w = 480, hh = Math.round(video.videoHeight * w / video.videoWidth);
+            cv.width = w; cv.height = hh; g.drawImage(video, 0, 0, w, hh);
+            const c = jsQR(g.getImageData(0, 0, w, hh).data, w, hh, { inversionAttempts: 'dontInvert' });
+            if (c) txt = c.data;
+          }
+          if (txt) fire(txt);
+        } catch (e) { }
+      }
+      setTimeout(loop, 160);
+    };
+    loop();
+  } catch (e) {
+    const cam = EN_GOOGLE && S.info && S.info.camara;
+    hint.innerHTML = cam
+      ? 'Google no permite la cámara en vivo dentro de su página. <a href="' + h(cam) + '" target="_blank" rel="noopener"><b>Abrir el panel con cámara en vivo</b></a> · o usa «Foto del QR».'
+      : 'La cámara en vivo no está disponible aquí. Usa «Foto del QR», un lector USB o escribe el código.';
+    hint.classList.remove('hidden');
+  }
+}
+function decodeFile(file) {
+  return new Promise(ok => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 1400 / Math.max(img.width, img.height));
+      const w = Math.round(img.width * s), hh = Math.round(img.height * s);
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
+      const g = cv.getContext('2d'); g.drawImage(img, 0, 0, w, hh);
+      const c = window.jsQR ? jsQR(g.getImageData(0, 0, w, hh).data, w, hh) : null;
+      URL.revokeObjectURL(img.src); ok(c ? c.data : null);
+    };
+    img.onerror = () => ok(null);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* ===================== Navegación ===================== */
+function render() {
+  stopCam(); clearTimers();
+  document.body.className = S.est ? S.est.tema : '';
+  const app = $('#app');
+  if (!S.pin) return vLogin(app);
+  if (!S.est) return vMenu(app);
+  app.innerHTML = '<header><button class="back" id="back" aria-label="Cambiar de puesto">Puestos</button><h1>' + h(S.est.nombre) +
+    '<small>' + h(S.est.grupo) + ' · ' + h(S.info && S.info.dia ? S.info.dia : 'sin jornada hoy') + (S.info && S.info.prueba ? ' · MODO PRUEBA' : '') + '</small></h1></header><main id="m"></main>';
+  $('#back').onclick = () => { S.est = null; lsSet('est', ''); render(); };
+  VIEWS[S.est.id]($('#m'), S.est);
+}
+function vLogin(app) {
+  app.innerHTML = '<header><h1>Panel de voluntarios<small>Nexus Ciencias · 150 años de la UNI</small></h1></header>' +
+    '<main><form class="card" id="f"><h2>Ingresa el PIN del equipo</h2><p class="muted">Te lo da el coordinador. Se guarda en este celular.</p>' +
+    '<input id="pin" inputmode="numeric" autocomplete="off" aria-label="PIN" placeholder="PIN"><button class="btn wide">Entrar</button><div id="err"></div></form></main>';
+  $('#f').onsubmit = async e => {
+    e.preventDefault();
+    const pin = $('#pin').value.trim(); if (!pin) return;
+    $('#err').innerHTML = loading('Verificando…');
+    try { S.info = await api('login', { pin: pin }); S.pin = pin; lsSet('pin', pin); render(); }
+    catch (err) { $('#err').innerHTML = ''; $('#err').append(resCard({ nivel: 'error', titulo: 'No se pudo entrar', lineas: [String(err && err.message || err).replace(/^Exception: /, '')] })); }
+  };
+  setTimeout(() => $('#pin') && $('#pin').focus(), 50);
+}
+async function vMenu(app) {
+  app.innerHTML = '<header><h1>Elige tu puesto<small>Nexus Ciencias</small></h1><button class="back" id="out">Salir</button></header><main id="m">' + loading() + '</main>';
+  $('#out').onclick = () => { S.pin = ''; lsSet('pin', ''); lsSet('est', ''); render(); };
+  if (!S.info) { try { S.info = await api('login', { pin: S.pin }); } catch (e) { S.pin = ''; lsSet('pin', ''); return render(); } }
+  const m = $('#m');
+  const i = S.info;
+  m.innerHTML = (i.prueba ? '<div class="banner">Modo prueba activo (Config → DIA_PRUEBA). Vacíalo antes del evento real.</div>' : '') +
+    (EN_GOOGLE && i.camara ? '<a class="btn wide" style="display:block;text-align:center;margin-bottom:12px;text-decoration:none" href="' + h(i.camara) + '" target="_blank" rel="noopener">Abrir el panel con cámara en vivo</a>' : '') +
+    '<div class="card"><h2>' + h(i.dia || 'Hoy no hay jornada') + '</h2><p class="muted">' + (i.dia ? 'Aforo: ' + i.aforo + ' fotochecks de asistente.' : 'Las jornadas son el martes 17 y el miércoles 18 de noviembre. Puedes revisar los puestos igual.') + '</p></div>' +
+    '<div class="stations"></div>';
+  const box = $('.stations', m);
+  ['Entrada y salida', 'Sorteos'].forEach(g => {
+    box.append(el('<h3>' + h(g) + '</h3>'));
+    EST.filter(e => e.grupo === g).forEach(e => {
+      const b = el('<button type="button" class="st ' + e.tema + '"><i></i><b>' + h(e.nombre) + '</b><span>' + h(e.desc) + '</span></button>');
+      b.onclick = () => { S.est = e; lsSet('est', e.nombre); render(); };
+      box.append(b);
+    });
+  });
+}
+
+/* ===================== Vistas por puesto ===================== */
+const VIEWS = {};
+
+/* Un solo puesto en la puerta: el voluntario elige Entrada o Salida y escanea. */
+VIEWS['nx-puerta'] = m => {
+  let modo = lsGet('modoPuerta') === 'salida' ? 'salida' : 'entrada';
+  m.innerHTML = '<div class="modo" role="group" aria-label="Qué registrar"><button type="button" class="ent" data-m="entrada">Entrada</button><button type="button" class="sal" data-m="salida">Salida</button></div>' +
+    '<p class="muted" id="ayuda"></p><div id="sc"></div><div id="out"></div><div id="st"></div>';
+  const pintarModo = () => {
+    $$('[data-m]', m).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === modo)));
+    $('#ayuda').textContent = modo === 'entrada'
+      ? 'Registrando ENTRADAS: escanea el QR (o escribe DNI, código UNI o apellido) y entrega el fotocheck.'
+      : 'Registrando SALIDAS: escanea el QR y, si se retira antes del cierre, recibe su fotocheck.';
+  };
+  const armarScanner = () => scanner($('#sc'), { placeholder: 'QR, DNI, código UNI o apellido', onCode: c => run(c) });
+  $$('[data-m]', m).forEach(b => b.onclick = () => { modo = b.dataset.m; lsSet('modoPuerta', modo); pintarModo(); $('#out').innerHTML = ''; stopCam(); armarScanner(); });
+  const run = async (c, opc) => {
+    $('#out').innerHTML = loading(modo === 'entrada' ? 'Registrando entrada…' : 'Registrando salida…');
+    const r = modo === 'entrada' ? await call('nexusIngreso', c, opc || {}) : await call('nexusSalida', c);
+    if (r && r.tipo === 'colegio') { renderColegio($('#out'), r, modo === 'entrada' ? 'ingreso' : 'salida', x => run(x)); statsNexus($('#st'), r); return; }
+    $('#out').innerHTML = ''; $('#out').append(resCard(r, a => run(a.entrada, { forzar: !!a.forzar })));
+    statsNexus($('#st'), r); beep(r.nivel);
+  };
+  pintarModo();
+  armarScanner();
+  call('nexusResumen').then(r => statsNexus($('#st'), r));
+};
+
+VIEWS['nx-ingreso'] = m => {
+  m.innerHTML = '<div id="sc"></div><div id="out"></div><div id="st"></div>';
+  const run = async (c, opc) => {
+    $('#out').innerHTML = loading('Validando…');
+    const r = await call('nexusIngreso', c, opc || {});
+    if (r && r.tipo === 'colegio') { renderColegio($('#out'), r, 'ingreso', x => run(x)); statsNexus($('#st'), r); return; }
+    $('#out').innerHTML = ''; $('#out').append(resCard(r, a => run(a.entrada, { forzar: !!a.forzar })));
+    statsNexus($('#st'), r); beep(r.nivel);
+  };
+  scanner($('#sc'), { placeholder: 'QR, DNI, código UNI o apellido', onCode: c => run(c) });
+  call('nexusResumen').then(r => statsNexus($('#st'), r));
+};
+
+function renderColegio(out, r, modo, onReload) {
+  out.innerHTML = '';
+  if (!r || r.tipo !== 'colegio') { out.append(resCard(r, a => onReload(a.entrada))); beep(r && r.nivel); return; }
+  if (r.resultado) { out.append(resCard(r.resultado)); beep(r.resultado.nivel); }
+  const c = r.colegio, al = r.alumnos;
+  const cnt = { dentro: 0, fuera: 0, salio: 0 };
+  al.forEach(a => cnt[a.estado]++);
+  const elegible = a => modo === 'ingreso' ? a.estado !== 'dentro' : a.estado === 'dentro';
+  const etiqueta = { dentro: 'Dentro', fuera: 'Sin ingreso', salio: 'Salió' };
+  const card = el('<div class="card"></div>');
+  card.innerHTML = '<div><div class="muted">' + h(c.codigo) + ' · ' + h(c.dia) + (c.horario ? ' · ' + h(c.horario) : '') + '</div><h2>' + h(c.institucion) + '</h2>' +
+    '<div class="muted">Director(a): ' + h(c.director) + (c.celular ? ' · ' + h(c.celular) : '') + ' · ' + al.length + ' en lista</div></div>' +
+    r.avisos.map(a => '<div class="chip warn" style="white-space:normal">' + h(a) + '</div>').join('') +
+    '<div class="row"><span class="chip ok">' + cnt.dentro + ' dentro</span><span class="chip">' + cnt.fuera + ' sin ingreso</span><span class="chip">' + cnt.salio + ' salieron</span><span class="chip acc">' + r.disponibles + ' fotochecks libres</span></div>' +
+    '<div class="row"><button type="button" class="btn ghost sm" data-all>Marcar todos</button><button type="button" class="btn ghost sm" data-none>Desmarcar todos</button></div>' +
+    '<div class="list">' + (al.length ? al.map(a => '<label class="li"><input type="checkbox" value="' + h(a.id) + '"' + (elegible(a) ? ' checked' : ' disabled') + '><span class="nm"><b>' + h(a.nombre) + '</b><br><span class="muted">' + h(a.grado || 'Sin grado') + (a.ingreso ? ' · entró ' + h(a.ingreso) : '') + (a.salida ? ' · salió ' + h(a.salida) : '') + '</span></span><span class="chip ' + (a.estado === 'dentro' ? 'ok' : '') + '">' + etiqueta[a.estado] + '</span></label>').join('') : '<div class="li muted">Sin alumnos en la lista.</div>') + '</div>' +
+    '<button type="button" class="btn wide ' + (modo === 'ingreso' ? 'ok' : '') + '" data-go></button>' +
+    (modo === 'ingreso' ? '<details><summary class="muted" style="cursor:pointer;padding:6px 0">Agregar un alumno que no está en la lista</summary><div class="grid2" style="margin-top:8px"><input data-n placeholder="Apellidos y nombres" aria-label="Apellidos y nombres"><select data-d aria-label="Grado"><option value="">Grado…</option><option>1.º de secundaria</option><option>2.º de secundaria</option><option>3.º de secundaria</option><option>4.º de secundaria</option><option>5.º de secundaria</option><option>6.º de primaria</option></select></div><button type="button" class="btn ghost wide" data-add style="margin-top:8px">Agregar a la lista</button></details>' : '');
+  out.append(card);
+  const go = $('[data-go]', card);
+  const upd = () => {
+    const n = $$('input[type=checkbox]:checked', card).length;
+    go.disabled = !n;
+    go.textContent = modo === 'ingreso' ? 'Registrar ingreso de ' + n + (n === 1 ? ' alumno' : ' alumnos') : 'Registrar salida de ' + n + (n === 1 ? ' alumno' : ' alumnos');
+  };
+  $$('input[type=checkbox]', card).forEach(x => x.onchange = upd);
+  $('[data-all]', card).onclick = () => { $$('input[type=checkbox]:not(:disabled)', card).forEach(x => x.checked = true); upd(); };
+  $('[data-none]', card).onclick = () => { $$('input[type=checkbox]', card).forEach(x => x.checked = false); upd(); };
+  upd();
+  go.onclick = async () => {
+    const ids = $$('input[type=checkbox]:checked', card).map(x => x.value);
+    go.disabled = true; go.textContent = 'Registrando…';
+    const r2 = await call('nexusColegioMarcar', c.codigo, ids, modo);
+    renderColegio(out, r2, modo, onReload);
+  };
+  const add = $('[data-add]', card);
+  if (add) add.onclick = async () => {
+    add.disabled = true;
+    const r2 = await call('nexusColegioAgregar', c.codigo, $('[data-n]', card).value, $('[data-d]', card).value);
+    renderColegio(out, r2, modo, onReload);
+  };
+}
+
+VIEWS['nx-colegios'] = m => {
+  m.innerHTML = '<div id="sc"></div><div id="out"></div>';
+  const run = async c => { $('#out').innerHTML = loading(); const r = await call('nexusColegio', c, 'ingreso'); renderColegio($('#out'), r, 'ingreso', run); };
+  scanner($('#sc'), { placeholder: 'QR o DNI del director(a), COL-… o nombre', onCode: run });
+};
+
+VIEWS['nx-salida'] = m => {
+  m.innerHTML = '<div id="sc"></div><div id="out"></div><div id="st"></div>' +
+    '<div class="card"><h3>Cierre de la jornada</h3><p class="muted">Registra la salida de todas las personas que siguen dentro, con la hora actual. Quienes se quedan hasta el final se llevan su fotocheck.</p>' +
+    '<button type="button" class="btn ghost" data-c1>Cerrar la jornada…</button><div class="hidden" data-c2><p><b>¿Registrar la salida de todos los que siguen dentro?</b></p><div class="row" style="margin-top:8px"><button type="button" class="btn bad" data-si>Sí, registrar ahora</button><button type="button" class="btn ghost" data-no>Cancelar</button></div></div><div data-cr></div></div>';
+  const run = async (c, opc) => {
+    $('#out').innerHTML = loading();
+    const r = await call('nexusSalida', c, opc || {});
+    if (r && r.tipo === 'colegio') { renderColegio($('#out'), r, 'salida', x => run(x)); statsNexus($('#st'), r); }
+    else { $('#out').innerHTML = ''; $('#out').append(resCard(r, a => run(a.entrada))); statsNexus($('#st'), r); beep(r.nivel); }
+  };
+  scanner($('#sc'), { placeholder: 'QR, DNI, código UNI, apellido o QR del colegio', onCode: c => run(c) });
+  call('nexusResumen').then(r => statsNexus($('#st'), r));
+  $('[data-c1]', m).onclick = () => $('[data-c2]', m).classList.remove('hidden');
+  $('[data-no]', m).onclick = () => $('[data-c2]', m).classList.add('hidden');
+  $('[data-si]', m).onclick = async () => {
+    $('[data-c2]', m).classList.add('hidden');
+    const r = await call('nexusCerrarJornada');
+    const box = $('[data-cr]', m); box.innerHTML = ''; box.append(resCard(r)); statsNexus($('#st'), r); beep(r.nivel);
+  };
+};
+
+VIEWS['nx-resumen'] = m => {
+  const load = async () => {
+    const r = await call('nexusResumen');
+    if (r.nivel === 'error') { m.innerHTML = ''; m.append(resCard(r)); return; }
+    if (r.sinDia) { m.innerHTML = '<div class="card"><h2>Hoy no hay jornada de Nexus</h2><p class="muted">Para ensayar, escribe una fecha en Config → DIA_PRUEBA.</p></div>'; return; }
+    m.innerHTML = '<div class="grid2"><div class="stat"><b>' + r.dentro + '</b><span>dentro ahora</span></div><div class="stat"><b>' + r.disponibles + '</b><span>fotochecks libres de ' + r.aforo + '</span></div>' +
+      '<div class="stat"><b>' + (r.pub.ingresaron + r.esc.ingresaron) + '</b><span>ingresaron hoy</span></div><div class="stat"><b>' + (r.pub.salieron + r.esc.salieron) + '</b><span>registraron salida</span></div></div>' +
+      '<div class="card"><h3>Público general y comunidad UNI</h3><table class="t"><tr><td>Inscritos para hoy</td><td class="n">' + r.pub.inscritos + '</td></tr><tr><td>Ingresaron</td><td class="n">' + r.pub.ingresaron + '</td></tr><tr><td>Dentro</td><td class="n">' + r.pub.dentro + '</td></tr><tr><td>Salieron</td><td class="n">' + r.pub.salieron + '</td></tr></table></div>' +
+      '<div class="card"><h3>Colegios de hoy</h3>' + (r.colegios.length ? '<table class="t"><tr><th>Colegio</th><th>Lista</th><th>Llegaron</th><th>Dentro</th></tr>' + r.colegios.map(c => '<tr><td>' + h(c.institucion) + '<br><span class="muted">' + h(c.codigo) + ' · ' + h(c.estado) + '</span></td><td class="n">' + c.lista + '</td><td class="n">' + c.presentes + '</td><td class="n">' + c.dentro + '</td></tr>').join('') + '</table>' : '<p class="muted">No hay colegios inscritos para hoy.</p>') + '</div>' +
+      '<div class="card"><h3>Últimos movimientos</h3>' + (r.ultimos.length ? '<table class="t">' + r.ultimos.map(u => '<tr><td>' + h(u.hora) + '</td><td>' + h(u.nombre) + '<br><span class="muted">' + h(u.accion) + (u.puesto ? ' · ' + h(u.puesto) : '') + '</span></td></tr>').join('') + '</table>' : '<p class="muted">Aún no hay movimientos.</p>') + '</div>' +
+      '<div class="card" id="cert"><h3>Certificados de participación</h3><p class="muted">Cargando…</p></div>' +
+      '<button type="button" class="btn ghost" data-r>Actualizar</button><p class="muted">Se actualiza solo cada 30 segundos.</p>';
+    $('[data-r]', m).onclick = load;
+    pintarCert();
+  };
+  m.innerHTML = loading(); load();
+  TIMERS.push(setInterval(load, 30000));
+};
+async function pintarCert() {
+  const box = $('#cert'); if (!box) return;
+  const e = await call('certEstado');
+  if (e.nivel === 'error') { box.innerHTML = '<h3>Certificados de participación</h3>'; box.append(resCard(e)); return; }
+  box.innerHTML = '<h3>Certificados de participación</h3>' +
+    '<div class="grid2"><div class="stat"><b>' + e.pendientes + '</b><span>por generar</span></div><div class="stat"><b>' + e.hechos + '</b><span>generados</span></div></div>' +
+    '<p class="muted">Reciben certificado quienes registraron al menos ' + e.minimo + ' minutos de asistencia (' + e.sinMinimo + ' no llegan al mínimo). ' +
+    'Al público se le envía por correo; cada colegio recibe una carpeta con los de sus alumnos.' + (e.enCurso ? ' <b>Generándose en segundo plano' + (e.ultima ? ' (última tanda ' + h(e.ultima) + ')' : '') + '.</b>' : '') + '</p>' +
+    '<button type="button" class="btn wide" id="certGo"' + (e.pendientes ? '' : ' disabled') + '>Generar certificados de participación</button><div id="certOut"></div>';
+  const b = $('#certGo');
+  b.onclick = async () => {
+    if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = '¿Generar ' + e.pendientes + ' certificados? Toca otra vez'; b.classList.add('warn'); return; }
+    b.disabled = true; b.textContent = 'Generando la primera tanda… (hasta 2 minutos)';
+    const r = await call('certIniciar');
+    $('#certOut').innerHTML = ''; $('#certOut').append(resCard(r)); beep(r.nivel);
+    setTimeout(pintarCert, 1500);
+  };
+}
+
+
+/* ----- Sorteo con ruleta ----- */
+VIEWS['sorteo'] = m => {
+  const S2 = { lista: [], girando: false, rot: 0, actual: null };
+  const COLORES = ['#1d4ed8', '#0e7490', '#0b2a6f', '#14b8a6', '#2563eb', '#155e75', '#1e3a8a', '#0891b2'];
+  m.innerHTML = '<div class="card"><h2>Sorteo con ruleta</h2>' +
+    '<label class="fld">Premio<input id="premio" maxlength="60" placeholder="Ej.: Kit de robótica, libro, merch…"></label>' +
+    '<div class="grid2"><label class="fld">Quiénes participan<select id="grupo"><option value="todos">Todos los presentes</option><option value="publico">Solo público general y UNI</option><option value="colegios">Solo alumnos de colegios</option></select></label>' +
+    '<label class="fld">Presencia<select id="pres"><option value="dentro">Están dentro ahora</option><option value="hoy">Ingresaron hoy</option><option value="lista">Toda la lista de inscritos de hoy</option></select></label></div>' +
+    '<button type="button" class="btn ghost wide" id="cargar">Cargar participantes</button><p class="muted" id="cuenta"></p></div>' +
+    '<div class="card" id="zona"><div class="premio" id="prem"></div><div class="rueda"><div class="ptr"></div><canvas id="cv" width="1040" height="1040" aria-label="Ruleta del sorteo"></canvas><div class="eje"></div></div>' +
+    '<div class="nombre-ruleta" id="nom" aria-live="polite"></div>' +
+    '<div class="grid2"><button type="button" class="btn wide" id="girar" disabled>Girar la ruleta</button><button type="button" class="btn ghost wide" id="proy">Proyectar en pantalla</button></div>' +
+    '<div id="res"></div></div>' +
+    '<div class="card"><h3>Ganadores</h3><div id="gan" class="list"></div></div>';
+  const cv = $('#cv'), g = cv.getContext('2d');
+  const dibujar = () => {
+    const n = S2.lista.length, R = cv.width / 2;
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.save(); g.translate(R, R); g.rotate(S2.rot);
+    if (!n) { g.fillStyle = '#e2e8f0'; g.beginPath(); g.arc(0, 0, R, 0, 2 * Math.PI); g.fill(); g.restore(); return; }
+    const paso = 2 * Math.PI / n;
+    for (let i = 0; i < n; i++) {
+      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R - 4, i * paso, (i + 1) * paso); g.closePath();
+      g.fillStyle = COLORES[i % COLORES.length]; if (n % COLORES.length === 1 && i === n - 1) g.fillStyle = '#f59e0b';
+      g.fill(); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 2; g.stroke();
+      if (n <= 60) {
+        g.save(); g.rotate(i * paso + paso / 2); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = '#fff';
+        const fs = Math.max(12, Math.min(34, Math.floor(paso * R * 0.55)));
+        g.font = '700 ' + fs + 'px Inter, system-ui, sans-serif';
+        let t = S2.lista[i].nombre; const max = R * 0.70;
+        while (g.measureText(t).width > max && t.length > 4) t = t.slice(0, -2);
+        if (t !== S2.lista[i].nombre) t = t.replace(/\s*\S?$/, '') + '…';
+        g.fillText(t, R - 26, 0); g.restore();
+      }
+    }
+    g.restore();
+    g.beginPath(); g.arc(R, R, R - 3, 0, 2 * Math.PI); g.lineWidth = 6; g.strokeStyle = '#fff'; g.stroke();
+  };
+  // Índice del segmento bajo el puntero (arriba, ángulo −90°).
+  const bajoPuntero = () => {
+    const n = S2.lista.length; if (!n) return -1;
+    const paso = 2 * Math.PI / n;
+    let ang = (-Math.PI / 2 - S2.rot) % (2 * Math.PI); if (ang < 0) ang += 2 * Math.PI;
+    return Math.floor(ang / paso) % n;
+  };
+  const mostrarNombre = (p, ganador) => {
+    $('#nom').innerHTML = p ? h(p.nombre) + '<small>' + h(p.detalle || '') + '</small>' : '';
+    $('#nom').classList.toggle('gana', !!ganador);
+  };
+  const pintarGanadores = l => {
+    const box = $('#gan');
+    box.innerHTML = l.length ? '' : '<div class="li muted">Aún no hay ganadores.</div>';
+    l.forEach(x => {
+      const row = el('<div class="li"><span class="nm"><b>' + h(x.nombre) + '</b><br><span class="muted">' + h(x.hora) + ' · ' + h(x.dia) + (x.premio ? ' · ' + h(x.premio) : '') + ' · ' + h(x.detalle) + '</span></span><span class="chip ' + (x.estado === 'Ganador' ? 'ok' : 'warn') + '">' + h(x.estado) + '</span><button type="button" class="btn ghost sm">Anular</button></div>');
+      const b = $('button', row);
+      b.onclick = async () => {
+        if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = '¿Seguro?'; b.classList.add('warn'); return; }
+        const r = await call('sorteoDeshacer', x.id); if (r.ganadores) pintarGanadores(r.ganadores);
+      };
+      box.append(row);
+    });
+  };
+  const cargar = async () => {
+    $('#cuenta').textContent = 'Cargando…';
+    const r = await call('sorteoParticipantes', { grupo: $('#grupo').value, presencia: $('#pres').value });
+    if (r.nivel === 'error') { $('#cuenta').textContent = ''; $('#res').innerHTML = ''; $('#res').append(resCard(r)); return; }
+    if (r.sinDia) { $('#cuenta').textContent = 'Hoy no hay jornada. Para ensayar, usa Config → DIA_PRUEBA.'; return; }
+    const sel = $('#grupo'), val = sel.value;
+    sel.innerHTML = '<option value="todos">Todos los presentes</option><option value="publico">Solo público general y UNI</option><option value="colegios">Solo alumnos de colegios</option>' +
+      r.colegios.map(c => '<option value="' + h(c.codigo) + '">Solo ' + h(c.institucion) + '</option>').join('');
+    sel.value = val;
+    // Orden aleatorio para que los del mismo colegio no queden juntos en la ruleta.
+    S2.lista = r.participantes.slice();
+    for (let i = S2.lista.length - 1; i > 0; i--) { const j = azar(i + 1); [S2.lista[i], S2.lista[j]] = [S2.lista[j], S2.lista[i]]; }
+    $('#cuenta').textContent = S2.lista.length + ' participantes en la ruleta · ' + r.dia + (S2.lista.length > 60 ? ' · con tantos nombres, el nombre se ve abajo mientras gira' : '');
+    $('#girar').disabled = S2.lista.length < 2;
+    S2.rot = 0; dibujar(); mostrarNombre(null); $('#res').innerHTML = '';
+    pintarGanadores(r.ganadores || []);
+  };
+  const azar = n => { const a = new Uint32Array(1); (window.crypto || window.msCrypto).getRandomValues(a); return a[0] % n; };
+  const girar = () => {
+    if (S2.girando || S2.lista.length < 2) return;
+    S2.girando = true; $('#girar').disabled = true; $('#res').innerHTML = ''; $('#prem').textContent = $('#premio').value;
+    const n = S2.lista.length, paso = 2 * Math.PI / n, gana = azar(n);
+    const dentro = (0.15 + 0.7 * azar(1000) / 1000) * paso;               // punto al azar dentro del segmento ganador
+    let destino = -Math.PI / 2 - (gana * paso + dentro);
+    const vueltas = 6 + azar(3);
+    destino -= 2 * Math.PI * Math.ceil((destino - S2.rot) / (2 * Math.PI));   // queda por debajo de la rotación actual
+    destino -= 2 * Math.PI * vueltas;
+    const ini = S2.rot, dur = 6500 + azar(1500), t0 = performance.now();
+    let ultimo = -1;
+    const paso_ = now => {
+      const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 4);
+      S2.rot = ini + (destino - ini) * e; dibujar();
+      const k = bajoPuntero();
+      if (k !== ultimo) { ultimo = k; mostrarNombre(S2.lista[k]); if (t < 0.97) tic(); }
+      if (t < 1) requestAnimationFrame(paso_); else terminar(S2.lista[bajoPuntero()]);
+    };
+    requestAnimationFrame(paso_);
+  };
+  let AC2 = null;
+  const tic = () => { try { AC2 = AC2 || new (window.AudioContext || window.webkitAudioContext)(); const o = AC2.createOscillator(), gg = AC2.createGain(); o.frequency.value = 1200; gg.gain.value = 0.03; o.connect(gg); gg.connect(AC2.destination); o.start(); o.stop(AC2.currentTime + 0.02); } catch (e) { } };
+  const terminar = p => {
+    S2.girando = false; S2.actual = p; mostrarNombre(p, true); beep('ok');
+    const box = $('#res'); box.innerHTML = '';
+    const card = el('<div class="res ok"><h2>¡' + h(p.nombre) + '!</h2><div class="muted">' + h(p.detalle) + '</div>' +
+      '<div class="grid2"><button type="button" class="btn ok" data-e="Ganador">Está presente: confirmar ganador</button><button type="button" class="btn warn" data-e="Ausente">No está: girar de nuevo</button></div></div>');
+    $$('[data-e]', card).forEach(b => b.onclick = async () => {
+      $$('[data-e]', card).forEach(x => x.disabled = true);
+      const r = await call('sorteoRegistrar', { id: p.id, nombre: p.nombre, detalle: p.detalle, premio: $('#premio').value, estado: b.dataset.e, total: S2.lista.length });
+      box.innerHTML = ''; box.append(resCard(r)); beep(r.nivel);
+      if (r.nivel === 'ok' || r.repetido) {
+        S2.lista = S2.lista.filter(x => x.id !== p.id);
+        $('#cuenta').textContent = S2.lista.length + ' participantes en la ruleta';
+        dibujar(); if (r.ganadores) pintarGanadores(r.ganadores);
+        if (b.dataset.e === 'Ausente' || r.repetido) mostrarNombre(null);
+      }
+      $('#girar').disabled = S2.lista.length < 2;
+    });
+    box.append(card);
+  };
+  $('#cargar').onclick = cargar;
+  $('#girar').onclick = girar;
+  $('#proy').onclick = () => {
+    const z = $('#zona'), on = !z.classList.contains('proyectar');
+    z.classList.toggle('proyectar', on); $('#proy').textContent = on ? 'Salir de la proyección' : 'Proyectar en pantalla';
+    $('#prem').textContent = $('#premio').value;
+    try { if (on && z.requestFullscreen) z.requestFullscreen(); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
+  };
+  dibujar(); cargar();
+};
+
+/* ===================== Inicio ===================== */
+(function init() {
+  const guardado = lsGet('est');
+  if (S.pin && guardado) S.est = EST.find(e => e.nombre === guardado) || null;
+  if (S.pin && S.est) {
+    api('login', { pin: S.pin }).then(i => { S.info = i; render(); }).catch(() => { S.pin = ''; lsSet('pin', ''); S.est = null; render(); });
+    document.getElementById('app').innerHTML = loading('Cargando…');
+  } else render();
+})();
+</script>
+</body>
+</html>
