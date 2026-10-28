@@ -90,6 +90,10 @@ table.t{width:100%;border-collapse:collapse;font-size:14px}
 .banner{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:12px;padding:8px 12px;font-size:14px;font-weight:600}
 .hidden{display:none!important}
 .modo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tipos button{min-height:62px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:14px;font-weight:800;line-height:1.15;cursor:pointer;padding:6px}
+.tipos button[aria-pressed=true]{background:var(--top);border-color:var(--top);color:#fff}
+.fld .opc{font-weight:500;color:var(--muted)}
 .modo button{min-height:64px;font-size:20px;font-weight:800;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;font-family:inherit}
 .modo button[aria-pressed=true].ent{background:var(--ok);border-color:var(--ok);color:#fff}
 .modo button[aria-pressed=true].sal{background:var(--bad);border-color:var(--bad);color:#fff}
@@ -118,6 +122,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px}
 const EST = [
   { id: 'nx-puerta', grupo: 'Entrada y salida', nombre: 'Entrada / salida (un solo puesto)', desc: 'Elige «Entrada» o «Salida», escanea el QR y se guarda la hora. Sirve para el cálculo de horas del certificado.', tema: 'nx' },
   { id: 'nx-ingreso', grupo: 'Entrada y salida', nombre: 'Ingreso', desc: 'Escanea el QR (persona o colegio) o escribe DNI, código UNI o apellido. Entrega el fotocheck.', tema: 'nx' },
+  { id: 'nx-inscribir', grupo: 'Entrada y salida', nombre: 'Inscribir en el momento', desc: 'Para quien llega sin inscribirse: público general, comunidad UNI u otra universidad. Queda con su ingreso, entra a la ruleta y recibe certificado.', tema: 'nx' },
   { id: 'nx-colegios', grupo: 'Entrada y salida', nombre: 'Ingreso · colegios', desc: 'QR o DNI del director(a): marca a los alumnos que llegaron.', tema: 'nx' },
   { id: 'nx-salida', grupo: 'Entrada y salida', nombre: 'Salida', desc: 'Registra la hora de salida y recibe el fotocheck de quien se va antes.', tema: 'nx' },
   { id: 'nx-resumen', grupo: 'Entrada y salida', nombre: 'Resumen del día', desc: 'Aforo, ingresos, salidas, colegios y certificados.', tema: 'nx' },
@@ -411,6 +416,45 @@ function renderColegio(out, r, modo, onReload) {
     renderColegio(out, r2, modo, onReload);
   };
 }
+
+/* Inscripción en el momento: crea la inscripción, registra el ingreso y la persona entra a la ruleta. */
+VIEWS['nx-inscribir'] = m => {
+  let tipo = lsGet('tipoInsc') || 'publico';
+  const unis = (S.info && S.info.universidades) || [];
+  m.innerHTML = '<div class="card"><b>¿A qué público pertenece?</b><div class="tipos" role="group" aria-label="Tipo de participante">' +
+    '<button type="button" data-t="publico">Público general</button><button type="button" data-t="uni">Comunidad UNI</button><button type="button" data-t="otra">Otra universidad</button></div>' +
+    '<form id="fi" class="card" style="border:0;padding:0" autocomplete="off" novalidate>' +
+    '<label class="fld">Nombres y apellidos<input name="nombre" required autocapitalize="words"></label>' +
+    '<label class="fld">DNI<input name="dni" inputmode="numeric" maxlength="12" required placeholder="8 dígitos"></label>' +
+    '<label class="fld"><span>Correo <span class="opc">(opcional: le llega su entrada y su certificado)</span></span><input name="correo" type="email" inputmode="email" autocapitalize="off"></label>' +
+    '<label class="fld" data-solo="uni"><span>Código UNI <span class="opc">(opcional)</span></span><input name="codUni" autocapitalize="characters" placeholder="20221234K"></label>' +
+    '<label class="fld" data-solo="otra">Universidad<input name="universidad" list="dlUnis" placeholder="Escribe o elige"></label>' +
+    '<label class="fld" data-solo="uni otra"><span>Carrera o especialidad <span class="opc">(opcional)</span></span><input name="carrera"></label>' +
+    '<label class="fld" data-solo="publico"><span>Institución u ocupación <span class="opc">(opcional)</span></span><input name="institucion"></label>' +
+    '<datalist id="dlUnis">' + unis.map(u => '<option value="' + h(u) + '">').join('') + '</datalist>' +
+    '<button class="btn ok wide" type="submit">Inscribir y registrar ingreso</button></form></div><div id="out"></div><div id="st"></div>';
+  const f = $('#fi', m);
+  const pintar = () => {
+    $$('[data-t]', m).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === tipo)));
+    $$('[data-solo]', m).forEach(x => { x.style.display = x.dataset.solo.split(' ').indexOf(tipo) >= 0 ? '' : 'none'; });
+  };
+  $$('[data-t]', m).forEach(b => b.onclick = () => { tipo = b.dataset.t; lsSet('tipoInsc', tipo); pintar(); });
+  pintar();
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    const d = { tipo: tipo };
+    ['nombre', 'dni', 'correo', 'codUni', 'universidad', 'carrera', 'institucion'].forEach(k => { d[k] = f.elements[k].value.trim(); });
+    if (!d.nombre || !d.dni) { $('#out').innerHTML = ''; $('#out').append(resCard({ nivel: 'error', titulo: 'Faltan datos', lineas: ['Escribe nombres y apellidos, y el DNI.'] })); beep('error'); return; }
+    const btn = $('button[type=submit]', f); btn.disabled = true;
+    $('#out').innerHTML = loading('Inscribiendo…');
+    const r = await call('nexusInscribir', d);
+    btn.disabled = false;
+    $('#out').innerHTML = ''; $('#out').append(resCard(r)); statsNexus($('#st'), r); beep(r.nivel);
+    if (r.nivel === 'ok') { f.reset(); f.elements.nombre.focus(); }
+    $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  call('nexusResumen').then(r => statsNexus($('#st'), r));
+};
 
 VIEWS['nx-colegios'] = m => {
   m.innerHTML = '<div id="sc"></div><div id="out"></div>';
