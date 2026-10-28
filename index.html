@@ -24,6 +24,8 @@ header{position:sticky;top:0;z-index:5;background:var(--top);color:#fff;padding:
 header h1{font-size:17px;margin:0;font-weight:800;flex:1;min-width:0;line-height:1.2}
 header small{display:block;font-weight:500;font-size:12px;opacity:.85;letter-spacing:.02em}
 header .back{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:10px;min-height:40px;padding:0 12px;font:inherit;font-weight:700;cursor:pointer}
+header .back.menu{background:#fff;color:var(--top);font-size:15px;padding:0 14px;min-height:44px;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.volver{display:block;width:calc(100% - 28px);max-width:640px;margin:18px auto 28px;min-height:52px;border-radius:14px;border:2px solid var(--top);background:#fff;color:var(--top);font:inherit;font-size:16px;font-weight:800;cursor:pointer}
 main{max-width:760px;margin:0 auto;padding:14px max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:12px}
 h2{font-size:21px;margin:0;line-height:1.2}
 h3{font-size:15px;margin:0;font-weight:800}
@@ -282,11 +284,16 @@ function render() {
   const app = $('#app');
   if (!S.pin) return vLogin(app);
   if (!S.est) return vMenu(app);
-  app.innerHTML = '<header><button class="back" id="back" aria-label="Cambiar de puesto">Puestos</button><h1>' + h(S.est.nombre) +
-    '<small>' + h(S.est.grupo) + ' · ' + h(S.info && S.info.dia ? S.info.dia : 'sin jornada hoy') + (S.info && S.info.prueba ? ' · MODO PRUEBA' : '') + '</small></h1></header><main id="m"></main>';
-  $('#back').onclick = () => { S.est = null; lsSet('est', ''); render(); };
+  app.innerHTML = '<header><button class="back menu" id="back" aria-label="Volver al menú principal">← Menú</button><h1>' + h(S.est.nombre) +
+    '<small>' + h(S.est.grupo) + ' · ' + h(S.info && S.info.dia ? S.info.dia : 'sin jornada hoy') + (S.info && S.info.prueba ? ' · MODO PRUEBA' : '') + '</small></h1></header><main id="m"></main>' +
+    '<button type="button" class="volver" id="back2">← Volver al menú principal</button>';
+  $('#back').onclick = volverMenu;
+  $('#back2').onclick = volverMenu;
   VIEWS[S.est.id]($('#m'), S.est);
 }
+/* Volver al menú de puestos (botón de arriba, botón de abajo o el «atrás» del celular). */
+function volverMenu() { S.est = null; lsSet('est', ''); render(); window.scrollTo(0, 0); }
+window.addEventListener('popstate', () => { if (S.est) volverMenu(); });
 function vLogin(app) {
   app.innerHTML = '<header><h1>Panel de voluntarios<small>Nexus Ciencias · 150 años de la UNI</small></h1></header>' +
     '<main><form class="card" id="f"><h2>Ingresa el PIN del equipo</h2><p class="muted">Te lo da el coordinador. Se guarda en este celular.</p>' +
@@ -315,7 +322,7 @@ async function vMenu(app) {
     box.append(el('<h3>' + h(g) + '</h3>'));
     EST.filter(e => e.grupo === g).forEach(e => {
       const b = el('<button type="button" class="st ' + e.tema + '"><i></i><b>' + h(e.nombre) + '</b><span>' + h(e.desc) + '</span></button>');
-      b.onclick = () => { S.est = e; lsSet('est', e.nombre); render(); };
+      b.onclick = () => { S.est = e; lsSet('est', e.nombre); try { history.pushState({ puesto: e.id }, ''); } catch (x) { } render(); window.scrollTo(0, 0); };
       box.append(b);
     });
   });
