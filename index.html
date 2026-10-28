@@ -585,14 +585,18 @@ async function pintarCert() {
   box.innerHTML = '<h3>Certificados de participación</h3>' +
     '<div class="grid2"><div class="stat"><b>' + e.pendientes + '</b><span>por generar</span></div><div class="stat"><b>' + e.hechos + '</b><span>generados</span></div></div>' +
     '<p class="muted">Reciben certificado quienes registraron al menos ' + e.minimo + ' minutos de asistencia (' + e.sinMinimo + ' no llegan al mínimo). ' +
-    'Al público se le envía por correo; cada colegio recibe uno solo, a nombre de la institución, en el correo de su director.' + (e.enCurso ? ' <b>Generándose en segundo plano' + (e.ultima ? ' (última tanda ' + h(e.ultima) + ')' : '') + '.</b>' : '') + '</p>' +
-    '<button type="button" class="btn wide" id="certGo"' + (e.pendientes ? '' : ' disabled') + '>Generar certificados de participación</button><div id="certOut"></div>';
+    'Se guardan en la carpeta de Drive <b>«Certificados de participación»</b> y <b>no se envían por correo</b> todavía: primero firman las autoridades.' +
+    (e.porEnviar ? ' <b>' + e.porEnviar + ' listos para firmar</b>.' : '') + (e.enviados ? ' ' + e.enviados + ' ya enviados.' : '') +
+    (e.enCurso ? ' <b>Generándose en segundo plano' + (e.ultima ? ' (última tanda ' + h(e.ultima) + ')' : '') + '.</b>' : '') + '</p>' +
+    (e.carpeta ? '<a class="btn ghost wide" style="text-decoration:none" href="' + h(e.carpeta) + '" target="_blank" rel="noopener">📁 Ir a la carpeta de certificados</a>' : '') +
+    '<button type="button" class="btn wide" id="certGo"' + (e.pendientes ? '' : ' disabled') + '>Generar certificados en Drive</button><div id="certOut"></div>';
   const b = $('#certGo');
   b.onclick = async () => {
     if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = '¿Generar ' + e.pendientes + ' certificados? Toca otra vez'; b.classList.add('warn'); return; }
     b.disabled = true; b.textContent = 'Generando la primera tanda… (hasta 2 minutos)';
     const r = await call('certIniciar');
     $('#certOut').innerHTML = ''; $('#certOut').append(resCard(r)); beep(r.nivel);
+    if (r.carpeta) $('#certOut').append(el('<a class="btn wide" style="text-decoration:none;margin-top:8px" href="' + h(r.carpeta) + '" target="_blank" rel="noopener">📁 Ir a la carpeta de certificados</a>'));
     setTimeout(pintarCert, 1500);
   };
 }
