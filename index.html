@@ -484,8 +484,21 @@ VIEWS['nx-salida'] = m => {
 };
 
 VIEWS['nx-resumen'] = m => {
+  // La tarjeta «Inscritos» va aparte para que la actualización automática no borre lo que se está buscando.
+  m.innerHTML = '<div id="rs">' + loading() + '</div>' +
+    '<div class="card" id="insc"><h3>Inscritos de hoy</h3><p class="muted" id="inscRes">Cargando…</p>' +
+    '<form class="row" id="inscF"><input class="grow" id="inscQ" type="search" placeholder="Buscar: nombre, DNI, código NX o UNI" autocomplete="off"><button class="btn sm" type="submit">Buscar</button></form>' +
+    '<div id="inscT"></div></div>' +
+    '<button type="button" class="btn ghost" data-r>Actualizar</button><p class="muted">Se actualiza solo cada 30 segundos.</p>';
+  let tq = null;
+  const buscar = () => pintarInscritos($('#inscQ').value);
+  $('#inscF').onsubmit = ev => { ev.preventDefault(); buscar(); };
+  $('#inscQ').oninput = () => { clearTimeout(tq); tq = setTimeout(buscar, 450); };
+  const rs = $('#rs');
   const load = async () => {
+    buscar();
     const r = await call('nexusResumen');
+    const m = rs;
     if (r.nivel === 'error') { m.innerHTML = ''; m.append(resCard(r)); return; }
     if (r.sinDia) { m.innerHTML = '<div class="card"><h2>Hoy no hay jornada de Nexus</h2><p class="muted">Para ensayar, escribe una fecha en Config → DIA_PRUEBA.</p></div>'; return; }
     m.innerHTML = '<div class="grid2"><div class="stat"><b>' + r.dentro + '</b><span>dentro ahora</span></div><div class="stat"><b>' + r.disponibles + '</b><span>fotochecks libres de ' + r.aforo + '</span></div>' +
@@ -493,14 +506,29 @@ VIEWS['nx-resumen'] = m => {
       '<div class="card"><h3>Público general y comunidad UNI</h3><table class="t"><tr><td>Inscritos para hoy</td><td class="n">' + r.pub.inscritos + '</td></tr><tr><td>Ingresaron</td><td class="n">' + r.pub.ingresaron + '</td></tr><tr><td>Dentro</td><td class="n">' + r.pub.dentro + '</td></tr><tr><td>Salieron</td><td class="n">' + r.pub.salieron + '</td></tr></table></div>' +
       '<div class="card"><h3>Colegios de hoy</h3>' + (r.colegios.length ? '<table class="t"><tr><th>Colegio</th><th>Lista</th><th>Llegaron</th><th>Dentro</th></tr>' + r.colegios.map(c => '<tr><td>' + h(c.institucion) + '<br><span class="muted">' + h(c.codigo) + ' · ' + h(c.estado) + '</span></td><td class="n">' + c.lista + '</td><td class="n">' + c.presentes + '</td><td class="n">' + c.dentro + '</td></tr>').join('') + '</table>' : '<p class="muted">No hay colegios inscritos para hoy.</p>') + '</div>' +
       '<div class="card"><h3>Últimos movimientos</h3>' + (r.ultimos.length ? '<table class="t">' + r.ultimos.map(u => '<tr><td>' + h(u.hora) + '</td><td>' + h(u.nombre) + '<br><span class="muted">' + h(u.accion) + (u.puesto ? ' · ' + h(u.puesto) : '') + '</span></td></tr>').join('') + '</table>' : '<p class="muted">Aún no hay movimientos.</p>') + '</div>' +
-      '<div class="card" id="cert"><h3>Certificados de participación</h3><p class="muted">Cargando…</p></div>' +
-      '<button type="button" class="btn ghost" data-r>Actualizar</button><p class="muted">Se actualiza solo cada 30 segundos.</p>';
-    $('[data-r]', m).onclick = load;
+      '<div class="card" id="cert"><h3>Certificados de participación</h3><p class="muted">Cargando…</p></div>';
     pintarCert();
   };
-  m.innerHTML = loading(); load();
+  $('[data-r]', m).onclick = load;
+  load();
   TIMERS.push(setInterval(load, 30000));
 };
+/* Tabla de inscritos (lee la pestaña «Público» de la hoja). */
+async function pintarInscritos(q) {
+  const box = $('#inscT'), res = $('#inscRes'); if (!box) return;
+  const r = await call('nexusInscritos', q || '');
+  if (!$('#inscT')) return;
+  if (r.nivel === 'error') { box.innerHTML = ''; box.append(resCard(r)); return; }
+  res.innerHTML = r.busqueda
+    ? (r.lista.length ? r.lista.length + (r.mas ? '+' : '') + ' resultado' + (r.lista.length === 1 ? '' : 's') + ' entre ' + r.total + ' inscritos.' : 'Nadie coincide con «' + h(q) + '» entre ' + r.total + ' inscritos.')
+    : '<b>' + r.hoy + '</b> se inscribieron hoy: ' + r.formulario + ' por el formulario (QR) y ' + r.panel + ' en el panel. Total en la hoja: ' + r.total + '.';
+  if (!r.lista.length) { box.innerHTML = r.busqueda ? '' : '<p class="muted">Aún nadie se inscribió hoy.</p>'; return; }
+  box.innerHTML = '<div style="overflow-x:auto"><table class="t insc"><tr><th>Hora</th><th>Persona</th><th>Ingreso</th></tr>' +
+    r.lista.map(p => '<tr><td>' + h(p.hora) + '</td><td><b>' + h(p.nombre) + '</b><br><span class="muted">' + h(p.codigo) + ' · ' + h(p.tipo) + (p.detalle ? ' · ' + h(p.detalle) : '') + (p.dni ? ' · DNI ' + h(p.dni) : '') + '</span><br>' +
+      '<span class="chip ' + (p.origen === 'Panel' ? 'acc' : '') + '">' + h(p.origen) + '</span></td>' +
+      '<td>' + (p.ingreso ? '<b style="color:var(--ok)">' + h(p.ingreso) + '</b>' + (p.salida ? '<br><span class="muted">salió ' + h(p.salida) + '</span>' : '') : '<span class="muted">—</span>') + '</td></tr>').join('') +
+    '</table></div>' + (r.mas ? '<p class="muted">Y ' + r.mas + ' más: afina la búsqueda.</p>' : '');
+}
 async function pintarCert() {
   const box = $('#cert'); if (!box) return;
   const e = await call('certEstado');
@@ -508,7 +536,7 @@ async function pintarCert() {
   box.innerHTML = '<h3>Certificados de participación</h3>' +
     '<div class="grid2"><div class="stat"><b>' + e.pendientes + '</b><span>por generar</span></div><div class="stat"><b>' + e.hechos + '</b><span>generados</span></div></div>' +
     '<p class="muted">Reciben certificado quienes registraron al menos ' + e.minimo + ' minutos de asistencia (' + e.sinMinimo + ' no llegan al mínimo). ' +
-    'Al público se le envía por correo; cada colegio recibe una carpeta con los de sus alumnos.' + (e.enCurso ? ' <b>Generándose en segundo plano' + (e.ultima ? ' (última tanda ' + h(e.ultima) + ')' : '') + '.</b>' : '') + '</p>' +
+    'Al público se le envía por correo; cada colegio recibe uno solo, a nombre de la institución, en el correo de su director.' + (e.enCurso ? ' <b>Generándose en segundo plano' + (e.ultima ? ' (última tanda ' + h(e.ultima) + ')' : '') + '.</b>' : '') + '</p>' +
     '<button type="button" class="btn wide" id="certGo"' + (e.pendientes ? '' : ' disabled') + '>Generar certificados de participación</button><div id="certOut"></div>';
   const b = $('#certGo');
   b.onclick = async () => {
